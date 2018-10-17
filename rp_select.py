@@ -1,4 +1,36 @@
 
+pct_carbs = 
+{
+	'pre' : 0.15,
+	'post' : .4,
+	'postpost': .35,
+	'other': .05
+}
+
+pct_fat = 
+{
+	'light' : 
+	{
+		'pre': 0.1,
+		'post': 0,
+		'postpost': 0.1,
+		'other': 0.4
+	},
+	'moderate' : 
+	{
+		'pre': 0.075,
+		'post': 0,
+		'postpost': 0.1,
+		'other': 0.4125
+	},
+	'intense' : 
+	{
+		'pre': 0.05,
+		'post': 0,
+		'postpost': 0.1,
+		'other': 0.425
+	}
+}
 
 
 def get_activity_multiplier(description):
@@ -65,12 +97,22 @@ class Macros(object):
 		self.carbs = Carbohydrate(0)
 		self.fat = Fat(0)
 
+	def __init__(self, _p=0, _c=0, _f=0):
+		self.protein = Protein(_p)
+		self.carbs = Carbohydrate(_c)
+		self.fat = Fat(_f)
+
+	def print_macros(self):
+		print(f'P {self.protein.grams:.0f}')
+		print(f'C {self.carbs.grams:.0f}')
+		print(f'F {self.fat.grams:.0f}')
+
 	def get_totals(self):
 		return 
 		{
-		'p': self.protein.calories(),
-		'c': self.carbs.calories(),
-		'f': self.fat.calories()	
+		'p': self.protein.grams,
+		'c': self.carbs.grams,
+		'f': self.fat.grams	
 		}
 
 class Training(object):
@@ -118,6 +160,8 @@ class MealPlan(object):
 		self.macros = Macros()
 		self.macros.protein = Protein(self.weight * 0.9)
 		self.set_carbs_and_fat()
+		self.meals = []
+		self.set_meals()
 
 	def set_carbs_and_fat(self):
 		if self.training.type == 'none':
@@ -130,6 +174,23 @@ class MealPlan(object):
 			self.macros.carbs = Carbohydrate(self.weight * 2)
 		fat_cals = self.calories - self.macros.protein.calories() - self.macros.carbs.calories()
 		self.macros.fat.grams = fat_cals / self.macros.fat.cals_per_gram
+
+	def set_meals(self):
+		# use the macros and the training time to set up the meal breakdown
+		protein_per_meal = self.macros.protein.grams  / self.num_meals
+		if self.training.type == 'none':
+			# the easiest version
+			carbs_per_meal = self.macros.carbs.grams / self.num_meals
+			fat_per_meal = self.macros.fat.grams / self.num_meals
+			for i in range(0, self.num_meals):
+				self.meals.append(Macros(protein_per_meal, carbs_per_meal, fat_per_meal))
+		else:
+			# time the meals
+			if self.training.time == 'morning':
+				pass
+			elif self.training.time == 'evening':
+				pass
+
 
 
 class Template(object):
@@ -161,19 +222,20 @@ class Template(object):
 			self.caloric_balance = 'eucaloric'
 
 	def print_meals(self):
-		pass
+		for meal in self.meal_plan.meals:
+			meal.print_macros()
 
 	def print_macros(self):
-		print(self.meal_plan.macros.protein.grams)
-		print(self.meal_plan.macros.carbs.grams)
-		print(self.meal_plan.macros.fat.grams)
+		print(f'P {self.meal_plan.macros.protein.grams}')
+		print(f'C {self.meal_plan.macros.carbs.grams}')
+		print(f'F {self.meal_plan.macros.fat.grams}')
 
 
 if __name__ == "__main__":
 	change = input('has your weight or bf pct changed? ').upper()
 	if change == 'Y' or change == 'YES':
-		print(get_tdee_calories_katch(185, .15, 'light'))
-		print(get_tdee_calories_mifflin(185, 70, 32, 'male', 'light'))
+		#print(get_tdee_calories_katch(185, .15, 'light'))
+		#print(get_tdee_calories_mifflin(185, 70, 32, 'male', 'light'))
 		weight_lbs = int(input('enter weight in lbs '))
 		af = input('enter activity factor <sedentary|light|moderate|very|extra> ')
 		hasLbm = input('do you have your bf_pct? ')
@@ -189,7 +251,7 @@ if __name__ == "__main__":
 		tdee = int(input('what is your tdee '))
 		weight_lbs = int(input('what is your weight in lbs '))
 
-	print('{} at {}'.format(tdee, weight_lbs))
+	print(f'{tdee} at {weight_lbs}')
 
 	goal = input('cut bulk or neither? ').lower()
 
@@ -212,3 +274,4 @@ if __name__ == "__main__":
 	params['weight'] = weight_lbs
 	template = Template(params)
 	template.print_macros()
+	template.print_meals()
